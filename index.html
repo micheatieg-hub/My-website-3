@@ -1,0 +1,95 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tieg Digital Agency</title>
+  <style>
+    /* ... existing styles ... */
+  </style>
+</head>
+<body>  <!-- ... existing HTML ... -->  <!-- Firebase and Auth -->  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDzeFZfqReHMHaZMlIfrfqAyjG3v2nfj-4",
+      authDomain: "content-platform-5a902.firebaseapp.com",
+      projectId: "content-platform-5a902",
+      storageBucket: "content-platform-5a902.firebasestorage.app",
+      messagingSenderId: "242934744688",
+      appId: "1:242934744688:web:a9f8c5eaee8242e62516b5",
+      measurementId: "G-M6TCHR9SP6"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    const ADMIN_EMAIL = 'tiegmicheal@gmail.com'; // Admin account email
+
+    let mode = 'login';
+    let currentUser = null;
+
+    function openAuth(){ document.getElementById('authPopup').style.display='flex'; }
+    function closeAuth(){ document.getElementById('authPopup').style.display='none'; }
+    function toggleMode(){
+      mode = mode==='login'?'signup':'login';
+      document.getElementById('authTitle').innerText = mode==='login'?'Login':'Sign Up';
+      document.getElementById('toggleText').innerText = mode==='login'?'No account?':'Have account?';
+      document.getElementById('toggleLink').innerText = mode==='login'?'Sign up':'Login';
+    }
+
+    function submitAuth(){
+      const email = authEmail.value;
+      const pass = authPass.value;
+      if(mode==='login'){
+        auth.signInWithEmailAndPassword(email,pass).then(()=>{
+          closeAuth(); openChat();
+        }).catch(alert);
+      }else{
+        auth.createUserWithEmailAndPassword(email,pass).then(()=>{
+          closeAuth(); openChat();
+        }).catch(alert);
+      }
+    }
+
+    auth.onAuthStateChanged(user=>{ currentUser=user; });
+
+    function openChat(){
+      if(!currentUser){ openAuth(); return; }
+      document.getElementById('liveChat').style.display='block';
+      loadMessages();
+    }
+
+    function sendMsg(){
+      const text = chatInput.value.trim();
+      if(!text || !currentUser) return;
+      db.collection('chats').add({
+        uid: currentUser.uid,
+        email: currentUser.email,
+        text,
+        sender: currentUser.email === ADMIN_EMAIL ? 'admin' : 'user',
+        time: Date.now()
+      });
+      chatInput.value='';
+    }
+
+    function loadMessages(){
+      db.collection('chats').orderBy('time').onSnapshot(snap=>{
+        chatMessages.innerHTML='';
+        snap.forEach(doc=>{
+          const m = doc.data();
+          if(m.uid===currentUser.uid || m.sender==='admin'){
+            const div=document.createElement('div');
+            div.style.margin='6px 0';
+            div.innerHTML = `<b>${m.sender==='admin'?'Admin':'You'}:</b> ${m.text}`;
+            chatMessages.appendChild(div);
+          }
+        });
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      });
+    }
+
+    document.querySelectorAll('a.btn').forEach(b=>{
+      if(b.innerText.toLowerCase().includes('buy')){
+        b.onclick = e=>{ e.preventDefault(); openChat(); };
+      }
+    });
+  </script></body>
+</html>
